@@ -91,7 +91,7 @@ class WeatherApp:
         result = (
             f"Weather in {city_name if city_name else weather.city}:\n"
             f"Description: {weather_desc}\n"
-            f"Temperature: {temperature}°C\n"
+            f"Temperature: {temperature}°F\n"
             f"Humidity: {humidity}%\n"
             f"Wind Speed: {wind_speed} m/s\n"
         )

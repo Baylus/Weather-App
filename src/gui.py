@@ -54,6 +54,7 @@ class WeatherApp:
         self.forecast_button_frame.pack(pady=10, fill=tk.X)
 
         # Frame for hourly details
+        self.current_hourly = None
         self.hourly_frame = tk.Frame(master)
         self.hourly_frame.pack(pady=10, fill=tk.BOTH, expand=True)
 
@@ -173,11 +174,16 @@ class WeatherApp:
 
     def show_hourly_details(self, day_index):
         self.hourly_text.delete(1.0, tk.END)  # Clear previous hourly details
+        if self.current_hourly == day_index:
+            # We are already showing this day, we want all details scrubbed, dont add new ones
+            self.current_hourly = None
+            return
         hourly_data = self.get_hourly_data(day_index)  # Fetch hourly data for the selected day
         
         # Display hourly details
         for hour in hourly_data:
             self.hourly_text.insert(tk.END, hour + "\n")
+        self.current_hourly = day_index # We are now showing this day
 
     def get_hourly_data(self, day_index):
         """Retrieve hourly data for the given day index."""

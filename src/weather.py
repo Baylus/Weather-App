@@ -1,5 +1,15 @@
 """
-Just for getting the weather data that we need.
+Gathers all weather data that we need.
+
+Takes the city as an argument and gathers detailed weather data. Classes included:
+Weather
+    Represents a weather state that any given moment
+WeatherDay
+    Collection of Weather moments spread throughout the day.
+    Also holds and calculates temp max/mins and average weather conditions across the day.
+WeatherMan
+    Responsible for making the request to the Open Weather Map (OWM) API
+    Collects and sorts the weather days that fall within it's specified forecast range
 """
 
 from collections import defaultdict, Counter
@@ -106,8 +116,15 @@ class WeatherMan():
         else:
             raise Exception(f"Error fetching forecast data: {response.status_code} - {response.json().get('message')}")
 
-    def process_forecast_data(self, forecast_list):
-        """Process the forecast data into WeatherDay objects."""
+    def process_forecast_data(self, forecast_list) -> list[WeatherDay]:
+        """Takes the raw forecast data returned from the API request and creates WeatherDay's according to the data.
+
+        Args:
+            forecast_list: The part of the data object that contains the forecast reports across multiple days.
+
+        Returns:
+            list[WeatherDay]: The days of weather that are captured within this forecast report.
+        """
         weather_days = defaultdict(WeatherDay)
 
         for entry in forecast_list:
@@ -126,6 +143,30 @@ class WeatherMan():
         return list(weather_days.values())  # Convert defaultdict to list of WeatherDay objects
 
 def get_owm_query(city_input: str) -> str:
+    """Creates a OWM compatible query out of a formal Geoname city.
+
+    e.g. Turns "Moscow, Idaho, United States" into "Moscow,ID,US"
+
+    Details:
+        This is important because if we just gave OWM "Moscow, Idaho, United States"
+        it would just look for Moscow, Russia. This is because the OWM API doesn't recognize
+        the state and country code following the city name (it expects 2 letter formats),
+        so it just throws those out and pretends like it didn't see them.
+
+        Then when we go to search up just "Moscow" for cities, the multi million
+        population city of Moscow, Russia comes up before the 26k pop Moscow, Idaho, surprisingly.
+
+        This is one of the weaker parts of this project, and if this were anything larger than a
+        small toy example, I would 100% rework the
+            City name search -> select on UI -> feed to this file -> convert search to OWM readable query -> make OWM request
+        pipline. But, time is precious.
+        
+    Args:
+        city_input (str): The Geoname string representing the city name.
+
+    Returns:
+        str: OWM Compatible query
+    """
     # Check if the input is just a single city name
     if ',' not in city_input:
         return city_input.strip()  # No transformation needed

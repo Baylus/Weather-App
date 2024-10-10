@@ -2,24 +2,79 @@
 Just for getting the weather data that we need.
 """
 
+from collections import defaultdict, Counter
 import requests
 import pycountry
 
 from config import *
 
 class Weather():
-    """Standard weather, must include current temperature 
-    """
-    def __init__(self, city, pretty_name = None):
-        self.city = city
-        self.pretty_name = pretty_name
-        self.temperature = None
-        self.humidity = None
-        self.weather_description = None
-        self.wind_speed = None
-        self.fetch_weather()
+    """Standard weather, must include current temperature and other details."""
+    def __init__(self, data=None):
+        if data:
+            self.populate_from_api(data)
+
+    def populate_from_api(self, data: dict):
+        """Populate the Weather object from API response data."""
+        self.temperature = data['main']['temp']
+        self.humidity = data['main']['humidity']
+        self.weather_description = data['weather'][0]['description']
+        self.wind_speed = data['wind']['speed']
+        self.timestamp = data.get('dt_txt')
+
+class WeatherDay():
+    """This class holds weather data for a single day."""
+    def __init__(self):
+        self.weather_objects: list[Weather] = []
+        self.temp_high = float('-inf')
+        self.temp_low = float('inf')
+        self.total_humidity = 0
+        self.total_wind_speed = 0
+        self.average_humidity = 0
+        self.average_wind_speed = 0
+        self.most_common_description: str = "Clear" # Default to clear day
+
+    def add_weather(self, weather):
+        """Add a Weather object and update daily statistics."""
+        self.weather_objects.append(weather)
+        self.temp_high = max(self.temp_high, weather.temperature)
+        self.temp_low = min(self.temp_low, weather.temperature)
+        self.total_humidity += weather.humidity
+        self.total_wind_speed += weather.wind_speed
+
+    def calculate_averages(self):
+        """Calculate average humidity and wind speed."""
+        weather_description_counter = Counter()
+        c = len(self.weather_objects)
+        if c > 0:
+            self.average_humidity = self.total_humidity / c
+            self.average_wind_speed = self.total_wind_speed / c
+        
+            for weather in self.weather_objects:
+                weather_description_counter[weather.weather_description] += 1
+
+        # Get the most common weather description
+        self.most_common_description = weather_description_counter.most_common(1)[0][0]
+
+        return self.average_humidity, self.average_wind_speed, self.most_common_description
+
+class WeatherMan():
+    """This will be the general weather gatherer that will ask for a report on the weather."""
+
+    def __init__(self, city, pretty_name=None):
+        self.city: str = city
+        self.pretty_name: str = pretty_name
+        self.current_weather: Weather = None
+        self.forecast: list[WeatherDay] = []  # List to hold WeatherDay objects
+
+        self.fetch_forecast()  # Fetch the forecast immediately after fetching current weather
 
     def fetch_weather(self):
+        """We may use this if we care about being more accurate to hit a more accurate endpoint for current weather.
+
+        Raises:
+            Exception: _description_
+        """
         base_url = "http://api.openweathermap.org/data/2.5/weather"
         params = {
             'q': self.city,
@@ -31,22 +86,44 @@ class Weather():
 
         if response.status_code == 200:
             data = response.json()
-            self.temperature = data['main']['temp']
-            self.humidity = data['main']['humidity']
-            self.weather_description = data['weather'][0]['description']
-            self.wind_speed = data['wind']['speed']
+            self.current_weather = Weather()
+            self.current_weather.populate_from_api(data)
         else:
-            print("We failed to fetch weather data")
             raise Exception(f"Error fetching weather data: {response.status_code} - {response.json().get('message')}")
 
-    def display_weather(self):
-        # Try to print out the prettier version if we have it.
-        print(f"Weather in {self.pretty_name if self.pretty_name else self.city}:")
-        print(f"  Description: {self.weather_description}")
-        print(f"  Temperature: {self.temperature}°F")
-        print(f"  Humidity: {self.humidity}%")
-        print(f"  Wind Speed: {self.wind_speed} m/s")
 
+    def fetch_forecast(self):
+        base_url = "http://api.openweathermap.org/data/2.5/forecast"
+        params = {
+            'q': self.city,
+            'appid': API_KEY,
+            'units': 'imperial'
+        }
+        response = requests.get(base_url, params=params)
+        if response.status_code == 200:
+            data = response.json()
+            self.forecast = self.process_forecast_data(data['list'])
+        else:
+            raise Exception(f"Error fetching forecast data: {response.status_code} - {response.json().get('message')}")
+
+    def process_forecast_data(self, forecast_list):
+        """Process the forecast data into WeatherDay objects."""
+        weather_days = defaultdict(WeatherDay)
+
+        for entry in forecast_list:
+            weather = Weather(entry)
+            if not self.current_weather:
+                # We don't have a weather yet, so this must be the closest to our current weather.
+                self.current_weather = weather
+            date = entry['dt_txt'].split(" ")[0]  # Extract date part
+
+            weather_days[date].add_weather(weather)
+
+        # Calculate averages for each WeatherDay
+        for weather_day in weather_days.values():
+            weather_day.calculate_averages()
+
+        return list(weather_days.values())  # Convert defaultdict to list of WeatherDay objects
 
 def get_owm_query(city_input: str) -> str:
     # Check if the input is just a single city name
@@ -90,7 +167,7 @@ def get_country_code(country_name: str):
     except LookupError:
         return None
 
-def get_weather_details(city: str) -> Weather:
+def get_weather_man(city: str) -> WeatherMan:
     query = get_owm_query(city)
-    weather = Weather(query)
+    weather = WeatherMan(query)
     return weather

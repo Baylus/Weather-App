@@ -12,7 +12,11 @@ class WeatherApp:
     def __init__(self, master):
         self.master = master
         self.master.title("Weather App")
-        self.master.geometry("400x1200")
+        self.master.geometry("400x1300")
+
+        # Add your name
+        self.name_label = tk.Label(master, text="Baylus Tunnicliff", font=("Arial", 12, "bold"))
+        self.name_label.pack(pady=10)
 
         self.city_label = tk.Label(master, text="Enter City:")
         self.city_label.pack(pady=10)
@@ -46,6 +50,10 @@ class WeatherApp:
         self.forecast_frame.pack(pady=10, fill=tk.BOTH, expand=True)
         self.forecast_text = tk.Text(self.forecast_frame, height=15, width=50)
         self.forecast_text.pack(fill=tk.BOTH, expand=True)
+        
+        # Add Info Button
+        self.info_button = tk.Button(master, text="Info", command=self.show_info)
+        self.info_button.pack(pady=10)
 
     def debounce_suggestions(self, event=None):
         if self.debounce_timer is not None:
@@ -146,3 +154,14 @@ class WeatherApp:
                 f"  Most Common Weather: {common_description}"
             )
         self.forecast_text.insert(tk.END, result)
+
+    def show_info(self):
+        info_text = (
+            "PM Accelerator: Hiring and getting hired for product management roles is hard. "
+            "In the short timeframe of an interview, it is difficult to precisely assess and display "
+            "the necessary, complex skills.\n\n"
+            "Product Managers play key roles in a company. Hiring for those positions shouldn’t be a guessing game.\n\n"
+            "It is our vision, to make it simple and beneficial for Product Managers to accurately display their skills "
+            "and empower hiring companies to choose the right Product Manager every time."
+        )
+        messagebox.showinfo("Information", info_text)

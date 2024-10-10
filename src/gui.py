@@ -30,6 +30,9 @@ class WeatherApp:
 
         self.search_button = tk.Button(master, text="Get Weather", command=self.get_weather)
         self.search_button.pack(pady=10)
+        
+        self.location_button = tk.Button(master, text="Use Current Location", command=self.use_current_location)
+        self.location_button.pack(pady=10)
 
         self.result_text = tk.Text(master, height=8, width=50)
         self.result_text.pack(pady=10)
@@ -44,6 +47,24 @@ class WeatherApp:
         # Set a new timer
         self.debounce_timer = self.master.after(1000, self.get_suggestions)  # 1000ms debounce time
 
+    def get_current_location(self):
+        try:
+            response = requests.get('http://ipinfo.io/json')
+            data = response.json()
+            loc = data['loc'].split(',')
+            city = data['city']
+            state = data['region']
+            country = data['country']
+            return f"{city}, {state}, {country}"
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not determine location: {e}")
+            return None
+
+    def use_current_location(self):
+        current_location = self.get_current_location()
+        if current_location:
+            self.city_var.set(current_location)
+            self.get_weather()
 
     def get_suggestions(self, event=None):
         city = self.city_var.get()

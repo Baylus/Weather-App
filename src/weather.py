@@ -16,7 +16,7 @@ class Weather():
 
     def populate_from_api(self, data: dict):
         """Populate the Weather object from API response data."""
-        self.temperature = data['main']['temp']
+        self.temperature = int(data['main']['temp'])
         self.humidity = data['main']['humidity']
         self.weather_description = data['weather'][0]['description']
         self.wind_speed = data['wind']['speed']

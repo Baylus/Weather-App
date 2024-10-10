@@ -2,12 +2,9 @@
 Just for getting the weather data that we need.
 """
 
-import json # Temp Pretty print
-
 import requests
 
-with open("API_KEY", "r") as f:
-    API_KEY = f.read()
+from config import *
 
 class Weather():
     """Standard weather, must include current temperature 

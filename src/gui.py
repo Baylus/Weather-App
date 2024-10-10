@@ -182,7 +182,7 @@ class WeatherApp:
         
         # Display hourly details
         for hour in hourly_data:
-            self.hourly_text.insert(tk.END, hour + "\n")
+            self.hourly_text.insert(tk.END, hour)
         self.current_hourly = day_index # We are now showing this day
 
     def get_hourly_data(self, day_index):
@@ -192,11 +192,11 @@ class WeatherApp:
             hourly_details = []
             for weather in day.weather_objects:
                 hour_info = (
-                    f"Time: {weather.timestamp} | "
-                    f"Temperature: {weather.temperature}°F | "
-                    f"Description: {weather.weather_description} | "
-                    f"Humidity: {weather.humidity}% | "
-                    f"Wind Speed: {weather.wind_speed} m/s"
+                    f"Time: {weather.timestamp.split(" ")[1]}\n"
+                    f"\tTemperature: {weather.temperature}°F | "
+                    f"\tDescription: {weather.weather_description}\n"
+                    f"\tHumidity: {weather.humidity}% | "
+                    f"\tWind Speed: {weather.wind_speed} \n"
                 )
                 hourly_details.append(hour_info)
             return hourly_details

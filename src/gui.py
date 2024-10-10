@@ -12,7 +12,7 @@ class WeatherApp:
     def __init__(self, master):
         self.master = master
         self.master.title("Weather App")
-        self.master.geometry("400x450")
+        self.master.geometry("400x1200")
 
         self.city_label = tk.Label(master, text="Enter City:")
         self.city_label.pack(pady=10)
@@ -43,9 +43,9 @@ class WeatherApp:
 
         # Forecast
         self.forecast_frame = tk.Frame(master)
-        self.forecast_frame.pack(pady=10)
-        self.forecast_text = tk.Text(self.forecast_frame, height=10, width=50)
-        self.forecast_text.pack()
+        self.forecast_frame.pack(pady=10, fill=tk.BOTH, expand=True)
+        self.forecast_text = tk.Text(self.forecast_frame, height=15, width=50)
+        self.forecast_text.pack(fill=tk.BOTH, expand=True)
 
     def debounce_suggestions(self, event=None):
         if self.debounce_timer is not None:
@@ -133,16 +133,16 @@ class WeatherApp:
 
     def display_forecast(self, forecast: list[WeatherDay]):
         self.forecast_text.delete(1.0, tk.END)
-        result = "5-Day Forecast:\n\n"
+        result = "5-Day Forecast:"
         for entry in forecast:
             date_str = entry.weather_objects[0].timestamp.split(" ")[0]  # Get the date from the first Weather object
             average_humidity, average_wind_speed, common_description = entry.calculate_averages()
             result += (
-                f"{date_str}:\n"
+                f"\n\n{date_str}:\n"
                 f"  High: {entry.temp_high}°F\n"
                 f"  Low: {entry.temp_low}°F\n"
                 f"  Avg Humidity: {average_humidity:.2f}%\n"
                 f"  Avg Wind Speed: {average_wind_speed:.2f} m/s\n"
-                f"  Most Common Weather: {common_description}\n\n"
+                f"  Most Common Weather: {common_description}"
             )
         self.forecast_text.insert(tk.END, result)

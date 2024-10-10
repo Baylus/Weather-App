@@ -1,9 +1,7 @@
-
-
 import requests
 import tkinter as tk
-from tkinter import messagebox, Listbox, StringVar
-import urllib.parse # TEMP
+from tkinter import messagebox, Listbox, StringVar, Text, Scrollbar
+import urllib.parse  # TEMP
 
 from config import *
 from src.weather import get_weather_man, Weather, WeatherMan, WeatherDay
@@ -12,7 +10,7 @@ class WeatherApp:
     def __init__(self, master):
         self.master = master
         self.master.title("Weather App")
-        self.master.geometry("400x1300")
+        self.master.geometry("800x1300")
 
         # Add your name
         self.name_label = tk.Label(master, text="Baylus Tunnicliff", font=("Arial", 12, "bold"))
@@ -48,8 +46,19 @@ class WeatherApp:
         # Forecast
         self.forecast_frame = tk.Frame(master)
         self.forecast_frame.pack(pady=10, fill=tk.BOTH, expand=True)
-        self.forecast_text = tk.Text(self.forecast_frame, height=15, width=50)
+        self.forecast_text = Text(self.forecast_frame, height=15, width=50)
         self.forecast_text.pack(fill=tk.BOTH, expand=True)
+        
+        # Frame for forecast buttons
+        self.forecast_button_frame = tk.Frame(master)
+        self.forecast_button_frame.pack(pady=10, fill=tk.X)
+
+        # Frame for hourly details
+        self.hourly_frame = tk.Frame(master)
+        self.hourly_frame.pack(pady=10, fill=tk.BOTH, expand=True)
+
+        self.hourly_text = tk.Text(self.hourly_frame, height=15, width=50)
+        self.hourly_text.pack(fill=tk.BOTH, expand=True)
         
         # Add Info Button
         self.info_button = tk.Button(master, text="Info", command=self.show_info)
@@ -85,11 +94,9 @@ class WeatherApp:
         city = self.city_var.get()
         if city:
             api_url = f"http://api.geonames.org/searchJSON?q={city}&maxRows=10&username={GEONAMES_USERNAME}"
-            # print(f"Checking {city} with query {api_url}")
             response = requests.get(api_url)
             if response.status_code == 200:
                 data = response.json()
-                # print(f"This is our data {data}")
                 self.suggestions_box.delete(0, tk.END)  # Clear previous suggestions
                 self.city_data = []  # Clear previous city data
                 for item in data.get('geonames', []):
@@ -100,14 +107,12 @@ class WeatherApp:
                     self.suggestions_box.insert(tk.END, display_name)
                     self.city_data.append((name, state, country))
             else:
-                print(f"We failed lookup with code {response.status_code}")
                 self.suggestions_box.delete(0, tk.END)  # Clear suggestions if API fails
 
     def on_select(self, event):
         selected = self.suggestions_box.curselection()
         if selected:
             city_name, state, country = self.city_data[selected[0]]
-            # CONSIDER: Trying to store the detailed object that geonames gives us if we struggle with matching city identity.
             self.city_var.set(f"{city_name}, {state}, {country}" if state else f"{city_name}, {country}")
             self.suggestions_box.delete(0, tk.END)  # Clear suggestions
 
@@ -141,8 +146,14 @@ class WeatherApp:
 
     def display_forecast(self, forecast: list[WeatherDay]):
         self.forecast_text.delete(1.0, tk.END)
+        # Clear previous buttons and hourly details
+        for widget in self.forecast_button_frame.winfo_children():
+            widget.destroy()
+        self.hourly_text.delete(1.0, tk.END)
+
+        self.forecast_days = forecast  # Store the forecast days
         result = "5-Day Forecast:"
-        for entry in forecast:
+        for idx, entry in enumerate(forecast):
             date_str = entry.weather_objects[0].timestamp.split(" ")[0]  # Get the date from the first Weather object
             average_humidity, average_wind_speed, common_description = entry.calculate_averages()
             result += (
@@ -153,7 +164,37 @@ class WeatherApp:
                 f"  Avg Wind Speed: {average_wind_speed:.2f} m/s\n"
                 f"  Most Common Weather: {common_description}"
             )
+            date_str = entry.weather_objects[0].timestamp.split(" ")[0]
+            button = tk.Button(self.forecast_button_frame, text=date_str, 
+                               command=lambda day=idx: self.show_hourly_details(day))
+            button.pack(side=tk.LEFT, padx=5)
+        
         self.forecast_text.insert(tk.END, result)
+
+    def show_hourly_details(self, day_index):
+        self.hourly_text.delete(1.0, tk.END)  # Clear previous hourly details
+        hourly_data = self.get_hourly_data(day_index)  # Fetch hourly data for the selected day
+        
+        # Display hourly details
+        for hour in hourly_data:
+            self.hourly_text.insert(tk.END, hour + "\n")
+
+    def get_hourly_data(self, day_index):
+        """Retrieve hourly data for the given day index."""
+        if 0 <= day_index < len(self.forecast_days):
+            day = self.forecast_days[day_index]
+            hourly_details = []
+            for weather in day.weather_objects:
+                hour_info = (
+                    f"Time: {weather.timestamp} | "
+                    f"Temperature: {weather.temperature}°F | "
+                    f"Description: {weather.weather_description} | "
+                    f"Humidity: {weather.humidity}% | "
+                    f"Wind Speed: {weather.wind_speed} m/s"
+                )
+                hourly_details.append(hour_info)
+            return hourly_details
+        return []
 
     def show_info(self):
         info_text = (

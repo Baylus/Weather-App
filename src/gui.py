@@ -11,7 +11,7 @@ class WeatherApp:
     def __init__(self, master):
         self.master = master
         self.master.title("Weather App")
-        self.master.geometry("400x300")
+        self.master.geometry("400x450")
 
         self.city_label = tk.Label(master, text="Enter City:")
         self.city_label.pack(pady=10)
@@ -68,6 +68,7 @@ class WeatherApp:
         selected = self.suggestions_box.curselection()
         if selected:
             city_name, state, country = self.city_data[selected[0]]
+            # CONSIDER: Trying to store the detailed object that geonames gives us if we struggle with matching city identity.
             self.city_var.set(f"{city_name}, {state}, {country}" if state else f"{city_name}, {country}")
             self.suggestions_box.delete(0, tk.END)  # Clear suggestions
 
@@ -78,9 +79,9 @@ class WeatherApp:
         except Exception as e:
             messagebox.showerror("Error", f"City not found: {e}")
             pass
-        self.display_weather(current)
+        self.display_weather(current, city)
 
-    def display_weather(self, weather: Weather):
+    def display_weather(self, weather: Weather, city_name: str = ""):
         self.result_text.delete(1.0, tk.END)  # Clear previous results
         weather_desc = weather.weather_description
         temperature = weather.temperature
@@ -88,7 +89,7 @@ class WeatherApp:
         wind_speed = weather.wind_speed
 
         result = (
-            f"Weather in {weather.city}:\n"
+            f"Weather in {city_name if city_name else weather.city}:\n"
             f"Description: {weather_desc}\n"
             f"Temperature: {temperature}°C\n"
             f"Humidity: {humidity}%\n"

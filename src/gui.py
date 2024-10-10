@@ -3,9 +3,10 @@
 import requests
 import tkinter as tk
 from tkinter import messagebox, Listbox, StringVar
+import urllib.parse # TEMP
 
 from config import *
-from src.weather import get_weather_details, Weather
+from src.weather import get_weather_man, Weather, WeatherMan, WeatherDay
 
 class WeatherApp:
     def __init__(self, master):
@@ -40,6 +41,12 @@ class WeatherApp:
         self.city_data = []  # To store city suggestions
         self.debounce_timer = None  # To store the timer reference
 
+        # Forecast
+        self.forecast_frame = tk.Frame(master)
+        self.forecast_frame.pack(pady=10)
+        self.forecast_text = tk.Text(self.forecast_frame, height=10, width=50)
+        self.forecast_text.pack()
+
     def debounce_suggestions(self, event=None):
         if self.debounce_timer is not None:
             self.master.after_cancel(self.debounce_timer)  # Cancel the previous timer
@@ -70,9 +77,11 @@ class WeatherApp:
         city = self.city_var.get()
         if city:
             api_url = f"http://api.geonames.org/searchJSON?q={city}&maxRows=10&username={GEONAMES_USERNAME}"
+            # print(f"Checking {city} with query {api_url}")
             response = requests.get(api_url)
             if response.status_code == 200:
                 data = response.json()
+                # print(f"This is our data {data}")
                 self.suggestions_box.delete(0, tk.END)  # Clear previous suggestions
                 self.city_data = []  # Clear previous city data
                 for item in data.get('geonames', []):
@@ -83,6 +92,7 @@ class WeatherApp:
                     self.suggestions_box.insert(tk.END, display_name)
                     self.city_data.append((name, state, country))
             else:
+                print(f"We failed lookup with code {response.status_code}")
                 self.suggestions_box.delete(0, tk.END)  # Clear suggestions if API fails
 
     def on_select(self, event):
@@ -93,14 +103,16 @@ class WeatherApp:
             self.city_var.set(f"{city_name}, {state}, {country}" if state else f"{city_name}, {country}")
             self.suggestions_box.delete(0, tk.END)  # Clear suggestions
 
-    def get_weather(self, event=None):
+    def get_weather(self):
         city = self.city_var.get()
         try:
-            current = get_weather_details(city)
+            weatherman: WeatherMan = get_weather_man(city)
+            weatherman.fetch_forecast()
         except Exception as e:
             messagebox.showerror("Error", f"City not found: {e}")
-            pass
-        self.display_weather(current, city)
+        
+        self.display_weather(weatherman.current_weather, city)
+        self.display_forecast(weatherman.forecast)
 
     def display_weather(self, weather: Weather, city_name: str = ""):
         self.result_text.delete(1.0, tk.END)  # Clear previous results
@@ -110,7 +122,7 @@ class WeatherApp:
         wind_speed = weather.wind_speed
 
         result = (
-            f"Weather in {city_name if city_name else weather.city}:\n"
+            f"Weather in {city_name if city_name else 'Unknown'}:\n"
             f"Description: {weather_desc}\n"
             f"Temperature: {temperature}°F\n"
             f"Humidity: {humidity}%\n"
@@ -118,3 +130,19 @@ class WeatherApp:
         )
         
         self.result_text.insert(tk.END, result)
+
+    def display_forecast(self, forecast: list[WeatherDay]):
+        self.forecast_text.delete(1.0, tk.END)
+        result = "5-Day Forecast:\n\n"
+        for entry in forecast:
+            date_str = entry.weather_objects[0].timestamp.split(" ")[0]  # Get the date from the first Weather object
+            average_humidity, average_wind_speed, common_description = entry.calculate_averages()
+            result += (
+                f"{date_str}:\n"
+                f"  High: {entry.temp_high}°F\n"
+                f"  Low: {entry.temp_low}°F\n"
+                f"  Avg Humidity: {average_humidity:.2f}%\n"
+                f"  Avg Wind Speed: {average_wind_speed:.2f} m/s\n"
+                f"  Most Common Weather: {common_description}\n\n"
+            )
+        self.forecast_text.insert(tk.END, result)

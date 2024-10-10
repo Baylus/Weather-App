@@ -10,7 +10,7 @@ class WeatherApp:
     def __init__(self, master):
         self.master = master
         self.master.title("Weather App")
-        self.master.geometry("800x1300")
+        self.master.geometry("800x1350")
 
         # Add your name
         self.name_label = tk.Label(master, text="Baylus Tunnicliff", font=("Arial", 12, "bold"))
@@ -56,7 +56,6 @@ class WeatherApp:
         # Frame for hourly details
         self.current_hourly = None
         self.hourly_frame = tk.Frame(master)
-        self.hourly_frame.pack(pady=10, fill=tk.BOTH, expand=True)
 
         self.hourly_text = tk.Text(self.hourly_frame, height=15, width=50)
         self.hourly_text.pack(fill=tk.BOTH, expand=True)
@@ -177,6 +176,7 @@ class WeatherApp:
         if self.current_hourly == day_index:
             # We are already showing this day, we want all details scrubbed, dont add new ones
             self.current_hourly = None
+            self.hourly_frame.pack_forget()  # Hide the hourly frame if no data
             return
         hourly_data = self.get_hourly_data(day_index)  # Fetch hourly data for the selected day
         
@@ -184,6 +184,7 @@ class WeatherApp:
         for hour in hourly_data:
             self.hourly_text.insert(tk.END, hour)
         self.current_hourly = day_index # We are now showing this day
+        self.hourly_frame.pack(fill=tk.BOTH, expand=True)  # Show the hourly frame
 
     def get_hourly_data(self, day_index):
         """Retrieve hourly data for the given day index."""
